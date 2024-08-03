@@ -2,7 +2,7 @@
 
 {% block title %}
 
-<title>Form with Sign In, Sign Out, and Text Area</title>
+MARK ATTENDANCE SECTION
     <!-- Bootstrap CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -28,6 +28,9 @@
     {% if status == "marked" %}
     <label  id="lblweldone" >Good job, your attendance have been registered for today.. Thank you!!!</label>
     {% endif %}
+    {% if status == "exceeded" %}
+    <label  id="lblweldone" >All attendance taken for today!!!</label>
+    {% endif %}
     {% if status == '' %}
     <label  id="lblweldone" >No attendance has been set for today.</label>
     {% endif %}
@@ -36,13 +39,13 @@
         {% if flag == 0 %}
         <div class="form-group text-center">
             <button type="button" style="font-size:xx-large;" class="btn btn-outline-secondary" onclick="clockInOut('signin', '{{ user_id }}')">
-                <i class="fas fa-sign-in-alt"></i> Sign In
+                <i class="fas fa-sign-in-alt"></i> Clock In
             </button>
         </div>
         {% else %}
         <div class="form-group text-center">
             <button type="button" style="font-size:xx-large;" class="btn btn-outline-secondary" onclick="clockInOut('signout', '{{ user_id }}')">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
+                <i class="fas fa-sign-out-alt"></i> Clock Out
             </button>
         </div>
         {% endif %}
@@ -113,6 +116,11 @@ function clockInOut(Type, userId)
     const reason =  document.getElementById('txtreason');
     if (t > st && flag == 0 && reason.value === '') {
         alert('please state the reason you are late');
+        reason.focus();
+        return;
+    }
+    if (t < et && flag == 1 && reason.value === '') {
+        alert('please state the reason you leaving early');
         reason.focus();
         return;
     }

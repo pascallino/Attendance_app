@@ -30,7 +30,13 @@ login_manager.init_app(app)
 scheduler = APScheduler()
 scheduler.init_app(app)
 
-
+@app.template_filter('hours_and_minutes')
+def hours_and_minutes_filter(mins):
+    if mins is None:
+        return 'N/A'
+    h = int(mins / 60)
+    m = mins % 60
+    return f"{h}h {m}mins"
 #db.init_app(app)
 
 with app.app_context():
@@ -363,6 +369,7 @@ def CancelSignout(workdayid):
         user.sign_out_status = None
         user.Total_hours_worked = 0
         user.is_approved = False
+        user.approved_by = None
         user.sign_out_reasons = None
         user.sign_out_time = None
         db.session.commit()
@@ -537,15 +544,29 @@ def clockInOut(user_id):
             }
             return jsonify(response_data), 200
         elif Type == 'signout':
+            w = Workday.query.filter_by(workday_date=datetime.now().date()).first()
+            if w.start_time > datetime.now():
+                response_data = {
+                'status': 'success',
+                'message': 'You can only clock out after start of work'
+            }
+                return jsonify(response_data), 200
             w = Worktransaction.query.filter_by(Date=datetime.now().date(), userid=user_id).first()
             if w:
                 if int(diff) > 0:
                     in_status = 'LEFT BEFORE CLOSE OF WORK'
                 else:
-                    in_status = 'CLOSED EXACT TIME'
+                    in_status = 'CLOSED NORMAL TIME'
                 w.sign_out_time = datetime.now()
                 w.sign_out_reasons = reason
                 w.sign_out_status = in_status
+                run_time = datetime.now() + timedelta(seconds=7) 
+                user = User.query.filter_by(userid=w.userid).first()
+                staffname = f'{user.last_name} {user.first_name}'
+                admins = User.query.filter_by(role='admin').all()
+                for admin in admins:
+                    scheduler.add_job(id=f'send_approval_mail{user.email}', func=send_approval_mail, args=(user.email, staffname, w.worktransid, 'Company Name',
+                        'Company Address', admin.email, f'{admin.last_name} {admin.first_name}', w.userid), trigger='date', run_date=run_time)
                 db.session.commit()
                 response_data = {
                 'status': 'success',
@@ -581,7 +602,14 @@ def saveworkday(user_id):
                 'message': 'Work day already exist !!!'
             }
             return jsonify(response_data), 200
-             
+        if w:
+            wt = Worktransaction.query.filter_by(workdayid=w.workdayid).first()
+            if wt:
+                response_data = {
+                    'status': 'success',
+                    'message': 'you cant modify this record, attendance ia already taken!!!'
+                }
+                return jsonify(response_data), 200
         if  start_time == '' or end_time == '':
             d =  datetime.now()
             d_start_time = d
@@ -662,6 +690,93 @@ def saveworkday(user_id):
             'status': 'error',
             'error': 'Unauthorized user'
         })
+
+def calculate_total_minutes(start_datetime, end_datetime):
+    """
+    Calculate the total minutes between two datetime objects.
+
+    :param start_datetime: The start datetime
+    :param end_datetime: The end datetime
+    :return: Total minutes as an integer
+    """
+    # Calculate the difference between the two datetimes
+    difference = end_datetime - start_datetime
+    # Get the total seconds from the difference and convert to minutes
+    total_minutes = difference.total_seconds() / 60
+    print(total_minutes)
+    return int(total_minutes)
+
+
+@app.route('/attendancehub_confirm/<worktransid>', methods=['GET'])
+@login_required
+def attendancehub_confirm(worktransid):
+    user = User.query.filter_by(userid=current_user.userid).first()
+    confirm = request.args.get('confirm')
+    if user:
+        try:
+            st = None
+            et = None
+            wrk = Worktransaction.query.filter_by(worktransid=worktransid).first()
+            # if wrk.is_approved == True:
+            #     return render_template('confirmation.html')
+                #return jsonify({'error': 'link has expired'})
+            if confirm == 'True':
+                wd = Workday.query.filter_by(workdayid=wrk.workdayid).first()
+                if wd:
+                    st = wrk.sign_in_time
+                    et = wrk.sign_out_time
+                    if wrk.sign_in_time < wd.start_time:
+                        st = wd.start_time
+                    if wrk.sign_out_time > wd.end_time:
+                        et =  wd.end_time
+                print(st)
+                print(et)
+                if st > et:
+                    wrk.Total_hours_worked = calculate_total_minutes(et, st)
+                else:
+                    wrk.Total_hours_worked = calculate_total_minutes(st, et)
+                wrk.is_approved = True
+                wrk.approved_by = f'{user.first_name} {user.last_name}'
+            db.session.commit()
+            return render_template('confirmation.html')
+        except:
+            return jsonify({'error': 'An error occured'})
+    else:
+        return jsonify({'Unauthorized': 'Unrecognised user'})
+            
+    return jsonify({'error': 'link has expired'})
+
+
+
+
+def send_approval_mail(recipient_email, staffname, workid, yourCompanyName,
+                       companyAddress, admin_email, admin_name, user_id):
+    with app.app_context():
+        current_date = datetime.now() 
+        confirm_url = url_for('attendancehub_confirm', worktransid=workid, confirm=True)
+        html_content = render_template('approvalmail.html', yourCompanyName=yourCompanyName, companyAddress=companyAddress,
+                                        staffname=staffname, workid=workid, admin_name=admin_name,
+                                        admin_email=admin_email, user_id=user_id, current_date=current_date, confirm_url=confirm_url)
+        recipients = [admin_email]
+        mailstat = get_mail_status()
+        if mailstat and mailstat.active == 'Yes':
+            app.config['MAIL_SERVER'] = mailstat.mail_server
+            app.config['MAIL_PORT'] = mailstat.mail_port
+            app.config['MAIL_USE_TLS'] = mailstat.mail_use_tls
+            app.config['MAIL_USE_SSL'] = mailstat.mail_use_ssl
+            app.config['MAIL_USERNAME'] = mailstat.username
+            app.config['MAIL_PASSWORD'] = mailstat.password
+        else:
+            app.config['MAIL_SERVER'] = 'smtp.mail.yahoo.com'
+            app.config['MAIL_PORT'] = 587
+            app.config['MAIL_USE_TLS'] = True
+            app.config['MAIL_USE_SSL'] = False
+            app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
+            app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+        subject = f'SIGNOUT APPROVAL REQUEST FOR [{staffname}]'
+        mail = Mail(app)
+        msg = Message(subject, sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        mail.send(msg)
 
 
      
@@ -803,13 +918,17 @@ def attendance(user_id):
         st = None
         et = None
         status =  ''
+    elif  datetime.now() > wd.end_time:
+        st = None
+        et = None
+        status =  'exceeded'
     else:
         st = wd.start_time
         et = wd.end_time
         status = wd.work_status
     if w:
-        if w.sign_out_status == 'LEFT BEFORE CLOSE OF WORK' or \
-            w.sign_out_status == 'CLOSED EXACT TIME':
+        if (w.sign_out_status == 'LEFT BEFORE CLOSE OF WORK' or \
+            w.sign_out_status == 'CLOSED NORMAL TIME') and status != 'exceeded':
             status = 'marked'
     return render_template('attendance.html', user_id=user_id, flag=flag, start_time=st, end_time=et,
                            status=status)
@@ -824,6 +943,7 @@ def attendancereport(user_id):
     if u.role == 'user':
         return jsonify({'error': 'Unauthorized User'}), 401
     q_param = request.form.get('q')
+    print(request.form.get('selectuser'))
     if q_param == 'name' and request.form['name'] != '':
         q = request.form['name']
         q = datetime.strptime(q, '%Y-%m-%d').date()
@@ -834,11 +954,15 @@ def attendancereport(user_id):
         #         (User.email != u.email) &
         #         (or_(User.first_name.contains(q), User.last_name.contains(q)))
         #         ).order_by(desc(User.created))
-        
-        user_transactions = Worktransaction.query.filter(
-            Worktransaction.Date.between(q, q2),
-            Worktransaction.user_id == selectuser
-            ).order_by(desc(Worktransaction.Date)).all()
+        if request.form.get('selectuser') != 'Select user':
+            user_transactions = Worktransaction.query.filter(
+                Worktransaction.Date.between(q, q2),
+                Worktransaction.userid == selectuser
+                ).order_by(desc(Worktransaction.Date)).all()
+        else:
+            user_transactions = Worktransaction.query.filter(
+                Worktransaction.Date.between(q, q2)
+                ).order_by(desc(Worktransaction.Date)).all()
     else:
         # user = User.query.filter(User.email != u.email).order_by(desc(User.created))
         user_transactions = Worktransaction.query.filter(Worktransaction.Date == datetime.now().date()

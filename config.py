@@ -3,6 +3,7 @@ import os
 base_url = os.path.dirname(os.path.abspath(__name__))
 class Config:
     DEBUG = True
+    SERVER_NAME= 'localhost:5001' 
     JWT_SECRET_KEY = 'X-ACCESS-LOGIN-FOUNDATIONS-PROJECT'
     JWT_ACCESS_TOKEN_EXPIRES = 3600
     SQLALCHEMY_TRACK_MODIFICATIONS = False

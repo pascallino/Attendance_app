@@ -29,17 +29,20 @@ Attendance Report
         <div class="card mb-3 shadow">
             <div class="card-body">
                 <h6 class="card-title"><b>Name: {{ dict_user.get(trans.userid, '') }}</b></h6>
-                <p class="card-title" style="font-size: 0.875rem;">Work Date: {{ trans.Date.strftime('%d %b %Y')  }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Expected Resumption Time: {{ trans.workday.start_time.strftime('%I:%M %p') if trans.workday.start_time else 'N/A' }} </p>
-                <p class="card-title" style="font-size: 0.875rem;">Signed In: {{ trans.sign_in_time.strftime('%I:%M %p')  }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Signed In Status: {{ trans.sign_in_status }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Reasons: {{ trans.sign_in_reasons }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Expected Closing Time: {{ trans.workday.end_time.strftime('%I:%M %p') if trans.workday.end_time else 'N/A' }} </p>
-                <p class="card-title" style="font-size: 0.875rem;">Signed Out: {{ trans.sign_out_time if trans.sign_out_time else 'N/A' }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Signed Out Status: {{ trans.sign_out_status if trans.sign_out_status else 'N/A' }}</p>
-                <p class="card-title" style="font-size: 0.875rem;">Reasons: {{ trans.sign_out_reasons }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Work Date:</b> {{ trans.Date.strftime('%d %b %Y')  }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Expected Resumption Time:</b> {{ trans.workday.start_time.strftime('%I:%M %p') if trans.workday.start_time else 'N/A' }} </p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Signed In:</b> {{ trans.sign_in_time.strftime('%I:%M %p')  }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Signed In Status:</b> {{ trans.sign_in_status }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Reasons: </b>{{ trans.sign_in_reasons if trans.sign_in_reasons else 'N/A' }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Expected Closing Time:</b> {{ trans.workday.end_time.strftime('%I:%M %p') if trans.workday.end_time else 'N/A' }} </p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Signed Out:</b> {{ trans.sign_out_time.strftime('%I:%M %p') if trans.sign_out_time else 'N/A' }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Signed Out Status:</b> {{ trans.sign_out_status if trans.sign_out_status else 'N/A' }}</p>
+                <p class="card-title" style="font-size: 0.875rem;"><b>Reasons:</b> {{ trans.sign_out_reasons if trans.sign_out_reasons else 'N/A' }}</p>
                 <hr>
-                <h6 class="card-subtitle mb-2 text-muted">others:</h6>
+                <div style="float: right; font-size: 0.875rem;">
+                    <p  class="card-subtitle mb-2 text-muted"><b>Total hours Worked:</b>{{ trans.Total_hours_worked|hours_and_minutes if trans.Total_hours_worked else 'N/A' }}</p>
+                        <p  class="card-subtitle mb-2 text-muted"><b>Approved Status:</b> {{ trans.is_approved if trans.is_approved else 'False' }}</p>
+                            <p class="card-subtitle mb-2 text-muted"><b>Approved by:</b> {{ trans.approved_by if trans.approved_by else 'N/A' }}</p></div>
             </div>
         </div>
     {% endfor %} 
