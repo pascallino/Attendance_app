@@ -28,11 +28,11 @@ MARK ATTENDANCE SECTION
     {% if status == "marked" %}
     <label  id="lblweldone" >Good job, your attendance have been registered for today.. Thank you!!!</label>
     {% endif %}
-    {% if status == "exceeded" %}
-    <label  id="lblweldone" >All attendance taken for today!!!</label>
-    {% endif %}
     {% if status == '' %}
     <label  id="lblweldone" >No attendance has been set for today.</label>
+    {% endif %}
+    {% if status == "exceeded" %}
+    <label  id="lblweldone" >All attendance taken for today!!!</label>
     {% endif %}
     {% if status == "Active" %}
     <form>

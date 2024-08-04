@@ -89,12 +89,12 @@ def sendcontactform():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-    app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+    app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+    app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
     mail = Mail(app)
     json_data = request.json
     body = f"{json_data['message']} \n\nEmail: {json_data['email']}\n\nRegards,\n{json_data['name']} "
-    msg = Message('Customer Mail', sender='luvpascal.ojukwu@yahoo.com', recipients=['luvpascal.ojukwu@yahoo.com'],body=body)
+    msg = Message('Customer Mail', sender='adjeimensah2003@yahoo.com', recipients=['adjeimensah2003@yahoo.com'],body=body)
     mail.send(msg)
     response_data = {
                 'status': 'success',
@@ -263,7 +263,7 @@ def testmail(email_id, user_id):
             mail = Mail(app)
             user = User.query.filter_by(userid=user_id).first()
             if user:
-                body = f"Hi {user.last_name},\n\nThis is to inform you that your mail setting was accepted. \n\nRegards,\n\nTestCompanion team. "
+                body = f"Hi {user.last_name},\n\nThis is to inform you that your mail setting was accepted. \n\nRegards,\n\nAttendanceHub team. "
                 msg = Message('MAIL TESTING SUCCESSFUL', sender=M.sender, recipients=[M.cc, M.sender],body=body)
                 mail.send(msg)
                 return jsonify({'message': 'Mail sent successfully', 'status': 'success'})
@@ -516,8 +516,10 @@ def clockInOut(user_id):
         print(outdiff)
         if int(diff) < 0:
             in_status = 'LATE'
-        else:
+        if datetime.now() <  datetime.strptime(work_start_time, '%Y-%m-%d %H:%M:%S') :
             in_status = 'EARLY'
+        else:
+            in_status = 'LATE'
         w = Workday.query.filter_by(workday_date=datetime.now().date()).first()
         if w:
             workdayid = w.workdayid 
@@ -647,7 +649,7 @@ def saveworkday(user_id):
             }
             """ try:
                 run_time = datetime.now() + timedelta(seconds=10) 
-                scheduler.add_job(id=f'send_newuser_mail{pwd}', func=send_newuser_mail, args=(pwd, fn, email, 'luvpascal.ojukwu@yahoo.com', com.company_name), trigger='date', run_date=run_time)
+                scheduler.add_job(id=f'send_newuser_mail{pwd}', func=send_newuser_mail, args=(pwd, fn, email, 'adjeimensah2003@yahoo.com', com.company_name), trigger='date', run_date=run_time)
                 # send_test_mail(test_day_id, applicant.user_id)
             except:
                 return jsonify({'message': 'INFO: An error occured while sending mail'})
@@ -729,8 +731,6 @@ def attendancehub_confirm(worktransid):
                         st = wd.start_time
                     if wrk.sign_out_time > wd.end_time:
                         et =  wd.end_time
-                print(st)
-                print(et)
                 if st > et:
                     wrk.Total_hours_worked = calculate_total_minutes(et, st)
                 else:
@@ -738,9 +738,9 @@ def attendancehub_confirm(worktransid):
                 wrk.is_approved = True
                 wrk.approved_by = f'{user.first_name} {user.last_name}'
             db.session.commit()
-            return render_template('confirmation.html')
+            return render_template('approved.html', user_id=current_user.userid)
         except:
-            return jsonify({'error': 'An error occured'})
+            return jsonify({'error': 'Link already expired'})
     else:
         return jsonify({'Unauthorized': 'Unrecognised user'})
             
@@ -771,11 +771,11 @@ def send_approval_mail(recipient_email, staffname, workid, yourCompanyName,
             app.config['MAIL_PORT'] = 587
             app.config['MAIL_USE_TLS'] = True
             app.config['MAIL_USE_SSL'] = False
-            app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-            app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+            app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+            app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         subject = f'SIGNOUT APPROVAL REQUEST FOR [{staffname}]'
         mail = Mail(app)
-        msg = Message(subject, sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message(subject, sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
 
 
@@ -815,7 +815,7 @@ def saveuser(user_id):
             }
             try:
                 run_time = datetime.now() + timedelta(seconds=10) 
-                scheduler.add_job(id=f'send_newuser_mail{pwd}', func=send_newuser_mail, args=(pwd, fn, email, 'luvpascal.ojukwu@yahoo.com', com.company_name), trigger='date', run_date=run_time)
+                scheduler.add_job(id=f'send_newuser_mail{pwd}', func=send_newuser_mail, args=(pwd, fn, email, 'adjeimensah2003@yahoo.com', com.company_name), trigger='date', run_date=run_time)
                 # send_test_mail(test_day_id, applicant.user_id)
             except:
                 return jsonify({'message': 'INFO: An error occured while sending mail'})
@@ -866,7 +866,7 @@ def userboard(user_id):
     if q_param == 'name' and request.form['name'] != '':
         q = request.form['name']
         user = User.query.filter(
-                (User.email != u.email) &
+                (User.email != '') &
                 (or_(User.first_name.contains(q), User.last_name.contains(q)))
                 ).order_by(desc(User.created))
     else:
@@ -918,10 +918,14 @@ def attendance(user_id):
         st = None
         et = None
         status =  ''
-    elif  datetime.now() > wd.end_time:
+    elif wd.work_status != 'Active':
         st = None
         et = None
-        status =  'exceeded'
+        status =  ''
+    # elif  datetime.now() > wd.end_time: 
+    #     st = None
+    #     et = None
+    #     status =  'exceeded'
     else:
         st = wd.start_time
         et = wd.end_time
@@ -1295,7 +1299,7 @@ def signup_post():
                 last_name=last_name, role='admin')
     company.users.append(user)
     db.session.commit()
-    send_confirm_mail(email, 'luvpascal.ojukwu@yahoo.com', user.userid, user.last_name + ' ' + user.first_name)
+    send_confirm_mail(email, 'adjeimensah2003@yahoo.com', user.userid, user.last_name + ' ' + user.first_name)
     return jsonify({'user_id': user.userid , 'message': 'Thank you for signing up, please check your email to complete your registration'})
     #""" except:
     #""" return jsonify({'error': 'A error occured please try again '})
@@ -1326,7 +1330,7 @@ def resend_confirm_mail(user_id):
         return jsonify({'error', 'Unauthorized user'}),  401
     user = User.query.filter_by(userid=userid).first()
     if user:
-        send_confirm_mail(user.email, 'luvpascal.ojukwu@yahoo.com', user.userid, user.last_name + ' ' + user.first_name)
+        send_confirm_mail(user.email, 'adjeimensah2003@yahoo.com', user.userid, user.last_name + ' ' + user.first_name)
         return jsonify({'success': 'success', 'message': 'Confirmation mail sent'})
 
 
@@ -1337,10 +1341,10 @@ def send_confirm_mail(recipient_email, admin_email, user_id, fullname):
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-    app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+    app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+    app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
     mail = Mail(app)
-    msg = Message('Successful - Welcome to TestCompanion', sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+    msg = Message('Successful - Welcome to TestCompanion', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
     mail.send(msg)
 
 
@@ -1877,10 +1881,10 @@ def send_applicantmail(recipient_email, applicantname, testdate, duration, testN
             app.config['MAIL_PORT'] = 587
             app.config['MAIL_USE_TLS'] = True
             app.config['MAIL_USE_SSL'] = False
-            app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-            app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+            app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+            app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message(testName, sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message(testName, sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
 @app.route('/Addtestuser/<test_id>/<user_id>', methods=['GET'])
 @login_required
@@ -1949,10 +1953,10 @@ def send_canceltest_mail(name, testname, recipient_email):
         app.config['MAIL_PORT'] = 587
         app.config['MAIL_USE_TLS'] = True
         app.config['MAIL_USE_SSL'] = False
-        app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-        app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+        app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+        app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message('Test Cancellation Notice', sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message('Test Cancellation Notice', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
 
 def send_reschedule_mail(name, new_test_date, testname, recipient_email):
@@ -1964,10 +1968,10 @@ def send_reschedule_mail(name, new_test_date, testname, recipient_email):
         app.config['MAIL_PORT'] = 587
         app.config['MAIL_USE_TLS'] = True
         app.config['MAIL_USE_SSL'] = False
-        app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-        app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+        app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+        app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message('Test Reschedule Notification', sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message('Test Reschedule Notification', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
 
 def send_newuser_mail(pwd, fn, recipient_email, email, companyname):
@@ -1979,10 +1983,10 @@ def send_newuser_mail(pwd, fn, recipient_email, email, companyname):
         app.config['MAIL_PORT'] = 587
         app.config['MAIL_USE_TLS'] = True
         app.config['MAIL_USE_SSL'] = False
-        app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-        app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+        app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+        app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message('New Member Registration - TestCompanion', sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message('New Member Registration - TestCompanion', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
         
 def send_test_mail(test_day_id, user_id):
@@ -2015,10 +2019,10 @@ def send_test_mail(test_day_id, user_id):
             app.config['MAIL_PORT'] = 587
             app.config['MAIL_USE_TLS'] = True
             app.config['MAIL_USE_SSL'] = False
-            app.config['MAIL_USERNAME'] = 'luvpascal.ojukwu@yahoo.com'
-            app.config['MAIL_PASSWORD'] = 'nvfolnadxvdepvxk'
+            app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
+            app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message(testName +' GRADED', sender='luvpascal.ojukwu@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message(testName +' GRADED', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
 
 
