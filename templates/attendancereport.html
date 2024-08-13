@@ -22,7 +22,12 @@ Attendance Report
 
     {% endif %}
 
-    <h5 class="mb-4" style="text-align: center;"><b>Attendance Report</b></h5>
+    <h5 class="mb-2" style="text-align: center;"><b>Attendance Report</b>   </h5> 
+        {% if totalhours  %}
+        <h6 class="mb-2" style="text-align: center;"><b>
+        Overall Total hours Worked:{{ totalhours|hours_and_minutes if totalhours else 'N/A' }}</b></h6>
+        {% endif %}
+ 
     <!-- <h5 class="mb-4" style="text-align: center;"> <b>Total applicant(s): {{ count|escape }} </b></h5> -->
     <!-- Loop through the dataset -->
      {% for trans in user_transactions %}

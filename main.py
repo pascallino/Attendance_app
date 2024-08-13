@@ -612,6 +612,13 @@ def saveworkday(user_id):
                     'message': 'you cant modify this record, attendance ia already taken!!!'
                 }
                 return jsonify(response_data), 200
+        if  start_time == end_time:
+            response_data = {
+                'status': 'success',
+                'message': 'Start time and End time cant be the same!!!'
+            }
+            return jsonify(response_data), 200
+            
         if  start_time == '' or end_time == '':
             d =  datetime.now()
             d_start_time = d
@@ -941,6 +948,7 @@ def attendance(user_id):
 @login_required
 def attendancereport(user_id):
     count = 1
+    totalhours = None
     u = User.query.filter_by(userid=user_id).first()
     if not u:
         return jsonify({'error': 'Unauthorized User'}), 401
@@ -963,6 +971,9 @@ def attendancereport(user_id):
                 Worktransaction.Date.between(q, q2),
                 Worktransaction.userid == selectuser
                 ).order_by(desc(Worktransaction.Date)).all()
+            totalhours = 0
+            for ut in user_transactions:
+                totalhours = totalhours + ut.Total_hours_worked
         else:
             user_transactions = Worktransaction.query.filter(
                 Worktransaction.Date.between(q, q2)
@@ -979,7 +990,7 @@ def attendancereport(user_id):
     for u in us:
         dict_user[u.userid] = f"{u.last_name} {u.first_name}"
     return render_template('attendancereport.html', user_transactions=user_transactions, i=0,
-                           companyname='', user_id=user_id, dict_user=dict_user)
+                           companyname='', user_id=user_id, dict_user=dict_user, totalhours=totalhours)
 
 @app.route('/revokehourboard/<user_id>', methods=['GET', 'POST'])
 @login_required

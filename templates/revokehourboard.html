@@ -44,7 +44,7 @@ Revoke Working hours dashboard
                         <td> {{ dict_user.get(user.userid, '') }} </td>
                         <td> {{ user.sign_in_time.strftime('%I:%M:%S %p')  }}</td>
                         {% if  user.sign_out_time %}
-                        <td> {{ user.sign_out_time.strftime('%I:%M %p')  }}</td>
+                        <td> {{ user.sign_out_time.strftime('%I:%M:%S %p')  }}</td>
                         {% else %}
                         <td> None </td>
                         {% endif %}
