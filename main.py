@@ -85,6 +85,7 @@ def signin():
 
 @app.route('/sendcontactform', methods=['POST'])
 def sendcontactform():
+    print('smtp.mail.yahoo.com')
     app.config['MAIL_SERVER'] = 'smtp.mail.yahoo.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
@@ -94,7 +95,7 @@ def sendcontactform():
     mail = Mail(app)
     json_data = request.json
     body = f"{json_data['message']} \n\nEmail: {json_data['email']}\n\nRegards,\n{json_data['name']} "
-    msg = Message('Customer Mail', sender='adjeimensah2003@yahoo.com', recipients=['adjeimensah2003@yahoo.com'],body=body)
+    msg = Message('Customer Mail', sender='adjeimensah2003@yahoo.com', recipients=[json_data['email']],body=body)
     mail.send(msg)
     response_data = {
                 'status': 'success',
@@ -423,6 +424,9 @@ def deleteuser(user_id):
     user = User.query.filter_by(userid=user_id).first()
     if not user:
          return jsonify({'message': 'The user doesn''t exist', 'status': 'error'}), 401  
+    user2 = Worktransaction.query.filter_by(userid=user_id).all()
+    for u in user2:
+        db.session.delete(u)
     tests = Test.query.filter_by(userid=user_id).all()
     for test in tests:
         test_id = test.test_id
@@ -523,7 +527,12 @@ def clockInOut(user_id):
         w = Workday.query.filter_by(workday_date=datetime.now().date()).first()
         if w:
             workdayid = w.workdayid 
-        print(in_status)
+        if datetime.now() > w.end_time:
+             response_data = {
+                'status': 'error',
+                'message': 'Your not allowed to sign in after close of work'
+            }
+             return jsonify(response_data), 200
         if Type == 'signin':
             wt = Worktransaction(Date=datetime.now().date(),
                                 sign_in_time=datetime.now(),
@@ -568,7 +577,7 @@ def clockInOut(user_id):
                 admins = User.query.filter_by(role='admin').all()
                 for admin in admins:
                     scheduler.add_job(id=f'send_approval_mail{user.email}', func=send_approval_mail, args=(user.email, staffname, w.worktransid, 'Company Name',
-                        'Company Address', admin.email, f'{admin.last_name} {admin.first_name}', w.userid), trigger='date', run_date=run_time)
+                        'Company Address', admin.email, f'{admin.last_name} {admin.first_name}', w.userid, datetime.now()), trigger='date', run_date=run_time)
                 db.session.commit()
                 response_data = {
                 'status': 'success',
@@ -757,9 +766,9 @@ def attendancehub_confirm(worktransid):
 
 
 def send_approval_mail(recipient_email, staffname, workid, yourCompanyName,
-                       companyAddress, admin_email, admin_name, user_id):
+                       companyAddress, admin_email, admin_name, user_id, current_date):
     with app.app_context():
-        current_date = datetime.now() 
+        current_date = current_date
         confirm_url = url_for('attendancehub_confirm', worktransid=workid, confirm=True)
         html_content = render_template('approvalmail.html', yourCompanyName=yourCompanyName, companyAddress=companyAddress,
                                         staffname=staffname, workid=workid, admin_name=admin_name,
@@ -878,7 +887,8 @@ def userboard(user_id):
                 ).order_by(desc(User.created))
     else:
         # user = User.query.filter(User.email != u.email).order_by(desc(User.created))
-        user = User.query.order_by(desc(User.created))
+        # user = User.query.order_by(desc(User.created))
+        user = User.query.filter_by(company_id=current_user.company_id).order_by(desc(User.created))
     if not user:
         return jsonify({'error': 'Unauthorized User'}), 401
     u = User.query.filter_by(userid=user_id).first()
@@ -970,14 +980,14 @@ def attendancereport(user_id):
             user_transactions = Worktransaction.query.filter(
                 Worktransaction.Date.between(q, q2),
                 Worktransaction.userid == selectuser
-                ).order_by(desc(Worktransaction.Date)).all()
+                ).order_by(asc(Worktransaction.Date)).all()
             totalhours = 0
             for ut in user_transactions:
                 totalhours = totalhours + ut.Total_hours_worked
         else:
             user_transactions = Worktransaction.query.filter(
                 Worktransaction.Date.between(q, q2)
-                ).order_by(desc(Worktransaction.Date)).all()
+                ).order_by(asc(Worktransaction.Date)).all()
     else:
         # user = User.query.filter(User.email != u.email).order_by(desc(User.created))
         user_transactions = Worktransaction.query.filter(Worktransaction.Date == datetime.now().date()
@@ -1002,6 +1012,7 @@ def revokehourboard(user_id):
     if u.role == 'user':
         return jsonify({'error': 'Unauthorized User'}), 401
     q_param = request.form.get('q')
+    q_param2 = request.form.get('q2')
     if q_param == 'name' and request.form['name'] != '':
         q = request.form['name']
         q = datetime.strptime(q, '%Y-%m-%d').date()
@@ -1017,6 +1028,35 @@ def revokehourboard(user_id):
                 Worktransaction.Date.between(q, q2),
                 Worktransaction.userid == selectuser
             ).order_by(desc(Worktransaction.Date))
+    elif q_param2 == 'name2' and request.form['names'] != '':
+        in_status = ''
+        qs = request.form['names']
+        qs = qs.replace('T', ' ')
+        qs = qs + ':00'
+        qs =  datetime.strptime(qs, '%Y-%m-%d %H:%M:%S')
+        searchdate = qs.date()
+        selectusers = request.form.get('selectusers')
+        ws = Workday.query.filter_by(workday_date=searchdate).first()
+        if ws.end_time > qs:
+            in_status = 'LEFT BEFORE CLOSE OF WORK'
+        else:
+            in_status = 'CLOSED NORMAL TIME'
+        
+        wt = Worktransaction.query.filter_by(Date=searchdate, userid=selectusers).first()
+        if wt:
+            wt.sign_out_time = datetime.now()
+            wt.sign_out_reasons = 'Admin help to signed out the staff'
+            wt.sign_out_status = in_status
+            run_time = datetime.now() + timedelta(seconds=7) 
+            user1 = User.query.filter_by(userid=wt.userid).first()
+            staffname = f'{user1.last_name} {user1.first_name}'
+            admins = User.query.filter_by(role='admin').all()
+            current_date = qs
+            for admin in admins:
+                scheduler.add_job(id=f'send_approval_mail{user1.email}', func=send_approval_mail, args=(user1.email, staffname, wt.worktransid, 'Company Name',
+                    'Company Address', admin.email, f'{admin.last_name} {admin.first_name}', wt.userid, current_date), trigger='date', run_date=run_time)
+            db.session.commit()
+        user = Worktransaction.query.order_by(desc(Worktransaction.Date))
     else:
         # user = User.query.filter(User.email != u.email).order_by(desc(User.created))
         user = Worktransaction.query.order_by(desc(Worktransaction.Date))
@@ -1997,7 +2037,7 @@ def send_newuser_mail(pwd, fn, recipient_email, email, companyname):
         app.config['MAIL_USERNAME'] = 'adjeimensah2003@yahoo.com'
         app.config['MAIL_PASSWORD'] = 'eirqejfooxiwblka'
         mail = Mail(app)
-        msg = Message('New Member Registration - TestCompanion', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
+        msg = Message('New Member Registration - AttendanceHub', sender='adjeimensah2003@yahoo.com', recipients=recipients, html=html_content)
         mail.send(msg)
         
 def send_test_mail(test_day_id, user_id):

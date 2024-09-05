@@ -1,15 +1,35 @@
-{% extends 'Master.html'%}
-
-{% block title %}
-Attendance Report
-{% endblock title%}
-
-{% block contents %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff(s) Attendance Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        .green-point { color: green; }
+        .red-point { color: red; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
 <div class="container">
+    
     <button type="button"  class="btn btn-outline-secondary mb-4" data-bs-toggle="modal" data-bs-target="#filterModal">
         Filter
-    </button>
+    </button> <a href="{{ url_for('mainboard', user_id=user_id) }}" class="btn btn-outline-secondary mb-4">Home</a>
 
+    <h5 class="" style="text-align: center;"><b>Attendance Report</b>   </h5> 
+        {% if totalhours  %}
+        <h6 class="" style="text-align: center;"><b>
+        Overall Total hours Worked:{{ totalhours|hours_and_minutes if totalhours else 'N/A' }}</b></h6>
+        {% endif %}
     <!-- Create Test Button -->
     <!-- <button type="button" class="btn btn-outline-secondary mb-4" data-bs-toggle="modal" data-bs-target="#createUserModal">
         Create Working Hours
@@ -22,11 +42,7 @@ Attendance Report
 
     {% endif %}
 
-    <h5 class="mb-2" style="text-align: center;"><b>Attendance Report</b>   </h5> 
-        {% if totalhours  %}
-        <h6 class="mb-2" style="text-align: center;"><b>
-        Overall Total hours Worked:{{ totalhours|hours_and_minutes if totalhours else 'N/A' }}</b></h6>
-        {% endif %}
+     
  
     <!-- <h5 class="mb-4" style="text-align: center;"> <b>Total applicant(s): {{ count|escape }} </b></h5> -->
     <!-- Loop through the dataset -->
@@ -525,4 +541,5 @@ function hideSuccessMessage() {
 }
 
 </script>
-{% endblock contents %}
+</body>
+</html>

@@ -9,6 +9,9 @@ Revoke Working hours dashboard
     <button type="button"  class="btn btn-outline-secondary mb-4" data-bs-toggle="modal" data-bs-target="#filterModal">
         Filter
     </button>
+    <button type="button"  class="btn btn-outline-secondary mb-4" data-bs-toggle="modal" data-bs-target="#signoutModal">
+        Forgot to Signout
+    </button>
     <br>
     <br>
 
@@ -124,7 +127,50 @@ Revoke Working hours dashboard
     </div>
 </div>
 
-<!-- Create user Modal -->
+<!-- Forgot Signout  Modal -->
+<div class="modal fade" id="signoutModal" tabindex="-1" aria-labelledby="signoutModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="signoutModal">Search by Date and staffname</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="./{{ user_id }}" method="post">
+                    <div class="row mb-8">
+                        <input type="hidden" name="q2" value="name2">
+                        <div class="col">
+                            <!-- <input type="text" class="form-control" name="name" id="name" placeholder="Enter name"> -->
+                        Selct Sign out date :  <input type="datetime-local"  name="names" id="names" class="form-control">
+                         <br>
+                            <label for="selectuser">Select User</label> :
+                            <select class="form-select" name="selectusers" id="selectusers" aria-label="Default select example" required>
+                                <option selected>Select user</option>
+                                {% for key, value in dict_user.items() %}
+                                    <option value="{{ key }}">{{ value }}</option>
+                                {% endfor %}
+                            </select>
+                        
+                    </div>
+                    
+                    </div>
+                    <br>
+                    <div class="row mb-8" style="float:right;">
+                        <div class="col">
+                            
+                            <button type="submit" class="btn btn-outline-secondary mb-4" onclick="showLoadingSpinner()" id='search'>Search</button>
+                        </div>
+                    </div>
+                    
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
 
 
 
@@ -148,6 +194,16 @@ Revoke Working hours dashboard
         // Set the default value for the date input
         document.getElementById('name').value = todayDate;
         document.getElementById('name2').value = todayDate;
+        document.getElementById('names').value = todayDate;
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = String(now.getMonth() + 1).padStart(2, '0');
+        var day = String(now.getDate()).padStart(2, '0');
+        var hours = String(now.getHours()).padStart(2, '0');
+        var minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        var currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('names').value = currentDateTime;
     });
     function getCookie(name) {
         const cookieArray = document.cookie.split('; ');

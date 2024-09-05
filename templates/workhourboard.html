@@ -346,7 +346,7 @@ function convertTo24Hour(timeString) {
             // Hide the success message after a few seconds
             setTimeout(() => {
                 hideSuccessMessage();
-            }, 2000);
+            }, 5000);
             if (data.status === 'success') {
                 var moddate = document.getElementById('moddate');
                 moddate.value = formatDate(data.workday_date);
@@ -434,7 +434,7 @@ function convertTo24Hour(timeString) {
             // Hide the success message after a few seconds
             setTimeout(() => {
                 hideSuccessMessage();
-            }, 1000);
+            }, 5000);
             if (data.status === 'success') {
                 // Refresh the current page on success
                 //console.log(data);
@@ -524,7 +524,7 @@ showLoadingSpinner();
         // Hide the success message after a few seconds
         setTimeout(() => {
             hideSuccessMessage();
-        }, 8000);
+        }, 5000);
         if (data.status === 'success') {
             // Refresh the current page on success
             //console.log(data);
@@ -580,7 +580,7 @@ function deletework(workdayid)
                 setTimeout(() => {
                     hideSuccessMessage();
                     location.reload();
-                }, 3000);
+                }, 5000);
 
                 if (data.status === 'success') {
                     //location.reload();
